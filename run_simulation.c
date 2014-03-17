@@ -45,7 +45,7 @@ void update_pos(Point * point);
 void update_normal(Face * face);
 double get_norm(double x, double y, double z);
 
-void log_forces()
+void log_forces();
 void log_points();
 void print_all_faces();
 void print_face(Face * face);
