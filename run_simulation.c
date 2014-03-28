@@ -8,11 +8,11 @@
 #define MAX_POINTS 4
 #define AREA 1
 #define PRESSURE_VALUE 1
-#define FORCE_FACTOR 0.001
+#define FORCE_FACTOR 0.01
 #define TIME_STEPS 300
 #define MAX_NEIGHBORS 3
 #define POINTS_PER_FACE 3
-#define FORCE_LOG_NAME "tetra_model_force.csv"
+#define FORCE_LOG_NAME "tetra_model_forces.csv"
 #define POINT_LOG_NAME "tetra_model_points.csv"
 #define ITERATE(var,limit,body)  \
     do { for(var = 0; var < limit; var++) { body } } while(0)
