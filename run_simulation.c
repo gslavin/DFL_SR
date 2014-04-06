@@ -1,3 +1,5 @@
+#include<windows.h>
+
 #include<stdio.h>
 #include<math.h>
 
@@ -7,15 +9,15 @@
 #define MAX_FACES  4
 #define MAX_POINTS 4
 #define AREA 1
-#define PRESSURE_VALUE 1
+#define SPRING_CONSTANT 10
+#define PRESSURE_VALUE 30
 #define FORCE_FACTOR 0.01
 #define TIME_STEPS 300
 #define MAX_NEIGHBORS 3
 #define POINTS_PER_FACE 3
+#define NORMAL_LOG_NAME "tetra_model_normals.csv"
 #define FORCE_LOG_NAME "tetra_model_forces.csv"
 #define POINT_LOG_NAME "tetra_model_points.csv"
-#define ITERATE(var,limit,body)  \
-    do { for(var = 0; var < limit; var++) { body } } while(0)
 
 typedef struct point_struct {
     double pos[3];
@@ -45,6 +47,8 @@ void update_pos(Point * point);
 void update_normal(Face * face);
 double get_norm(double x, double y, double z);
 
+void clear_file(const char *);
+void log_normals();
 void log_forces();
 void log_points();
 void print_all_faces();
@@ -71,9 +75,9 @@ int main() {
 
     //dumby faces
     //set points in face
-    faces[0].points[0] = &points[0];
-    faces[0].points[1] = &points[1];
-    faces[0].points[2] = &points[2];
+    faces[0].points[0] = points+0;
+    faces[0].points[1] = points+1;
+    faces[0].points[2] = points+2;
     faces[0].normal[0] = 0;
     faces[0].normal[1] = 0;
     faces[0].normal[2] = -1;
@@ -100,28 +104,70 @@ int main() {
     faces[3].normal[2] = 0;
 
     //set spring constants
-    ITERATE(i,MAX_FACES,
-        ITERATE(j,POINTS_PER_FACE,
-            faces[i].spring_constants[j] = 1;
-        );
-    );
+    for(i = 0; i < MAX_FACES; i++) {
+        for(j = 0; j < POINTS_PER_FACE; j++) {
+            faces[i].spring_constants[j] = SPRING_CONSTANT;
+        }
+    }
     ////////////////////////////////////////Dumby data fill
 
+    //clear csv log files
+    clear_file(NORMAL_LOG_NAME);
+    clear_file(FORCE_LOG_NAME);
+    clear_file(POINT_LOG_NAME);
+
     /* calculate new normal of faces */
-    ITERATE(i, MAX_FACES,
+    for(i = 0; i < MAX_FACES; i++) {
         update_normal(&faces[i]);
-    );
+    }
     print_all_faces();
     for(i = 0; i < TIME_STEPS; i++) {
+        reset_net_force();
         change_state();
         /* print_all_points(); */
+        log_normals();
         log_forces();
         log_points();
-        reset_net_force();
     }
     return 0;
 }
 
+void
+clear_file(const char * name)
+{
+    FILE * fp = NULL;
+
+    fp = fopen(name, "w");
+    if (fp == NULL) {
+        printf("Error Opening %s\n", name);
+        return;
+    }
+    fclose(fp);
+}
+
+/* logs point pos each iteration to the line of a csv */
+void
+log_normals()
+{
+    FILE * fp = NULL;
+    int i, j;
+
+    fp = fopen(NORMAL_LOG_NAME, "a");
+    if (fp == NULL) {
+        printf("Error Opening normal log file\n");
+        return;
+    }
+    /* each line is a point */
+    for(i = 0; i < MAX_FACES; i++) {
+        for(j = 0; j < 3; j++) {
+            fprintf(fp, "%f ", faces[i].normal[j]);
+        }
+        fprintf(fp, "\n");
+    }
+    /* blank lines delimit iterations */
+    fprintf(fp, "\n");
+    fclose(fp);
+}
 
 /* logs point pos each iteration to the line of a csv */
 void
@@ -131,6 +177,10 @@ log_forces()
     int i, j;
 
     fp = fopen(FORCE_LOG_NAME, "a");
+    if (fp == NULL) {
+        printf("Error Opening force log file\n");
+        return;
+    }
     /* each line is a point */
     for(i = 0; i < MAX_POINTS; i++) {
         for(j = 0; j < 3; j++) {
@@ -151,6 +201,10 @@ log_points()
     int i, j;
 
     fp = fopen(POINT_LOG_NAME, "a");
+    if (fp == NULL) {
+        printf("Error Opening point log file\n");
+        return;
+    }
     /* each line is a point */
     for(i = 0; i < MAX_POINTS; i++) {
         for(j = 0; j < 3; j++) {
@@ -185,22 +239,22 @@ change_state()
     int i, j, k;
     
     /* calculate new normal of faces */
-    ITERATE(i, MAX_FACES,
+    for(i = 0; i < MAX_FACES; i++) {
         update_normal(&faces[i]);
-    );
+    }
 
     /* calculate forces */
-    ITERATE(i,MAX_FACES,
-        ITERATE(j,POINTS_PER_FACE,
+    for(i = 0; i < MAX_FACES; i++) {
+        for(j = 0; j < POINTS_PER_FACE; j++) {
             /* TODO: change to faces+i? */
             calculate_forces(&faces[i],j);
-        );
-    );
+        }
+    }
 
     /* calculate new position of points */
-    ITERATE(i,MAX_POINTS,
+    for(i = 0; i < MAX_POINTS; i++) {
         update_pos(&points[i]);
-    );
+    }
 }
 
 void 
@@ -208,11 +262,11 @@ print_all_faces()
 {
     int i;
 
-    ITERATE(i,MAX_FACES,
+    for(i = 0; i < MAX_FACES; i++) {
         printf("FACE: %d\n", i);
         print_face(faces+i);
         printf("\n\n");
-    );
+    }
 }
 
 void 
@@ -220,11 +274,11 @@ print_all_points()
 {
     int i;
 
-    ITERATE(i,MAX_POINTS,
+    for(i = 0; i < MAX_POINTS; i++) {
         printf("Point: %d\n", i);
         print_point(points+i);
         printf("\n\n");
-    );
+    }
 }
 
 static void
@@ -308,21 +362,31 @@ calculate_forces(Face * face, int point_index)
     }
     add_force(face->points[point_index], pressure_force);
 
-    /* calc spring forces from other faces */
+    /* calc spring forces from other vertices */
+    /* x, y, z components */
     for(i = 0; i < 3; i++) {
+        /* other points on face*/
         for(j = 0; j < 3; j++) {
-            /* don't calc spring force from opposite segment */ 
+            /* don't calc spring force from opposite segment
+               (segment not compared to itself)*/ 
             if (j == point_index) {
                 continue;
             }
-            /* every segment belongs to two faces, so the spring force
-              will be calculated twice. should then divide by 2? */
-            delta_pos[i] = abs(face->points[j]->delta_pos[i] - 
-                face->points[point_index]->delta_pos[i]);
-            spring_force[i] = (-1*face->
-                spring_constants[(j+point_index)%2]*delta_pos[i])/2;
+            /* TODO: every segment belongs to two faces,
+               so the spring force will be calculated twice.
+               should then divide by 2? */
+            delta_pos[i] = face->points[j]->delta_pos[i] - 
+                face->points[point_index]->delta_pos[i];
+            spring_force[i] = (face->
+                /* 2*(j+point_index)%3 maps vertex pairs to
+                   their spring constant */
+                spring_constants[2*(j+point_index)%3]*delta_pos[i])/2;
         }
     }
+    #if 0
+    printf("SPRING_FORCE: %f %f %f\n", spring_force[0],
+        spring_force[1], spring_force[2]);
+    #endif
     add_force(face->points[point_index], spring_force);
 }
 
