@@ -1,5 +1,4 @@
 #include<windows.h>
-
 #include<stdio.h>
 #include<math.h>
 
@@ -13,7 +12,6 @@
 #define PRESSURE_VALUE 30
 #define FORCE_FACTOR 0.01
 #define TIME_STEPS 300
-#define MAX_NEIGHBORS 3
 #define POINTS_PER_FACE 3
 #define NORMAL_LOG_NAME "tetra_model_normals.csv"
 #define FORCE_LOG_NAME "tetra_model_forces.csv"
