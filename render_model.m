@@ -1,11 +1,11 @@
 function [] = render_model(file_name_points, file_name_forces)
     ITERATIONS = 300;
-    POINTS = 4;
-    STEP_TIME = 0.1;
+    POINTS = 242;
+    STEP_TIME = 0.3;
     points = zeros(POINTS, 3, ITERATIONS);
     forces = zeros(POINTS, 3, ITERATIONS);
     force_mag = zeros(POINTS,ITERATIONS);
-    limit = 2.5;
+    limit = 20;
     
     % load the position data
     points = load_data(file_name_points, points);

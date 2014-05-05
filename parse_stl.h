@@ -1,6 +1,5 @@
 #ifndef PARSE_STL
 #define PARSE_STL
-
 /* standard imports */
 #include<windows.h>
 #include<stdio.h>
@@ -18,16 +17,10 @@ typedef enum _error_codes {
     E_ATTRIBUTE = -6
 } error_t;
 
-
-
 /* MAX_FACES should be determined by the # of triangles
    in the STL */
 #define POINTS_PER_FACE 3
 #define HEADER_LENGTH 80
-
-uint32_t max_faces = 0;
-uint32_t max_points = 0;
-uint32_t total_points = 0;
 
 typedef struct point_struct {
     float pos[3];
@@ -46,15 +39,15 @@ typedef struct face_struct {
 } Face;
 
 
-Face * faces = NULL;
-Point * points = NULL;
-
 /* parses the stl and returns the filled Face and Point arrays */
-error_t parse_stl(const char * stl_name);
+error_t parse_stl(const char * stl_name, Face ** faces, Point ** points,
+    uint32_t * max_faces, uint32_t * max_points, int32_t * total_points);
 
 /* parses the next facet in the stl file */
-error_t parse_facet(int face_index, FILE * stl_file);
+error_t parse_facet(int face_index, FILE * stl_file,  Face * faces, Point * points,
+    uint32_t * total_points);
 
 /* finds the vertex in the point array*/
-Point * find_vertex(float * vertex_pos);
+Point * find_vertex(float * vertex_pos,  Face * faces, Point * points,
+    uint32_t * total_points);
 #endif

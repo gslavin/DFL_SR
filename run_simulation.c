@@ -1,47 +1,20 @@
 #include "run_simulation.h"
 
 int main() {
+    Face * faces = NULL;
+    Point * points = NULL;
+    uint32_t max_faces = 0;
+    uint32_t max_points = 0;
+    uint32_t total_points = 0;
     int i,j,k;
-
-    /////////////////////////////////////Dumby data fill
-    //dumby points
-    points[0].pos[0] = 0; points[0].pos[1] = 0; points[0].pos[2] = 0;
-    points[1].pos[0] = 1; points[1].pos[1] = 0; points[1].pos[2] = 0;
-    points[2].pos[0] = 0; points[2].pos[1] = 1; points[2].pos[2] = 0;
-    points[3].pos[0] = 0, points[3].pos[1] = 0, points[3].pos[2] = 1;
-
-    //dumby faces
-    //set points in face
-    faces[0].points[0] = points+0;
-    faces[0].points[1] = points+1;
-    faces[0].points[2] = points+2;
-    faces[0].normal[0] = 0;
-    faces[0].normal[1] = 0;
-    faces[0].normal[2] = -1;
-
-    faces[1].points[0] = points+3;
-    faces[1].points[1] = points+1;
-    faces[1].points[2] = points+2;
-    faces[1].normal[0] = 0.5774;
-    faces[1].normal[1] = 0.5774;
-    faces[1].normal[2] = 0.5774;
-
-    faces[2].points[0] = points+3;
-    faces[2].points[1] = points+0;
-    faces[2].points[2] = points+2;
-    faces[2].normal[0] = -1;
-    faces[2].normal[1] = 0;
-    faces[2].normal[2] = 0;
-
-    faces[3].points[0] = points+3;
-    faces[3].points[1] = points+1;
-    faces[3].points[2] = points+0;
-    faces[3].normal[0] = 0;
-    faces[3].normal[1] = -1;
-    faces[3].normal[2] = 0;
-
+    
+    parse_stl("sphere2.stl", &faces, &points, &max_faces,
+        &max_points, &total_points);
+    
+    printf("There are %d faces\n", max_faces);
+    printf("There are %d points\n", total_points);
     //set spring constants
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         for(j = 0; j < POINTS_PER_FACE; j++) {
             faces[i].spring_constants[j] = SPRING_CONSTANT;
         }
@@ -54,18 +27,23 @@ int main() {
     clear_file(POINT_LOG_NAME);
 
     /* calculate new normal of faces */
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         update_normal(&faces[i]);
     }
-    print_all_faces();
+    //print_all_faces(faces, max_faces);
     for(i = 0; i < TIME_STEPS; i++) {
-        reset_net_force();
-        change_state();
+        reset_net_force(points, max_points);
+        change_state(faces, max_faces, points, max_points);
         /* print_all_points(); */
-        log_normals();
-        log_forces();
-        log_points();
+        log_normals(faces, max_faces, points, max_points);
+        log_forces(faces, max_faces, points, max_points);
+        log_points(faces, max_faces, points, max_points);
     }
+    
+    /* free all malloc objects */
+    free_faces(faces);
+    free_points(points);
+    
     return 0;
 }
 
@@ -84,7 +62,8 @@ clear_file(const char * name)
 
 /* logs point pos each iteration to the line of a csv */
 void
-log_normals()
+log_normals(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
@@ -95,7 +74,7 @@ log_normals()
         return;
     }
     /* each line is a point */
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         for(j = 0; j < 3; j++) {
             fprintf(fp, "%f ", faces[i].normal[j]);
         }
@@ -108,7 +87,8 @@ log_normals()
 
 /* logs point pos each iteration to the line of a csv */
 void
-log_forces()
+log_forces(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
@@ -119,7 +99,7 @@ log_forces()
         return;
     }
     /* each line is a point */
-    for(i = 0; i < MAX_POINTS; i++) {
+    for(i = 0; i < total_points; i++) {
         for(j = 0; j < 3; j++) {
             fprintf(fp, "%f ", points[i].net_force[j]);
         }
@@ -132,7 +112,8 @@ log_forces()
 
 /* logs point pos each iteration to the line of a csv */
 void
-log_points()
+log_points(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
@@ -143,7 +124,7 @@ log_points()
         return;
     }
     /* each line is a point */
-    for(i = 0; i < MAX_POINTS; i++) {
+    for(i = 0; i < total_points; i++) {
         for(j = 0; j < 3; j++) {
             fprintf(fp, "%f ", points[i].pos[j]);
         }
@@ -158,11 +139,11 @@ log_points()
 /* resets the net force.  Used after each iteration
    so the forces don't keep piling up */
 void
-reset_net_force()
+reset_net_force(Point * points, uint32_t total_points)
 {
     int i, j;
 
-    for(i = 0; i < MAX_POINTS; i++) {
+    for(i = 0; i < total_points; i++) {
         for(j = 0; j < 3; j++) {
             points[i].net_force[j] = 0;
         }
@@ -171,17 +152,18 @@ reset_net_force()
 
 /* step through 1 time step */
 void
-change_state()
+change_state(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points)
 {
     int i, j, k;
     
     /* calculate new normal of faces */
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         update_normal(&faces[i]);
     }
 
     /* calculate forces */
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         for(j = 0; j < POINTS_PER_FACE; j++) {
             /* TODO: change to faces+i? */
             calculate_forces(&faces[i],j);
@@ -189,17 +171,17 @@ change_state()
     }
 
     /* calculate new position of points */
-    for(i = 0; i < MAX_POINTS; i++) {
+    for(i = 0; i < total_points; i++) {
         update_pos(&points[i]);
     }
 }
 
 void 
-print_all_faces()
+print_all_faces(Face * faces, uint32_t max_faces)
 {
     int i;
 
-    for(i = 0; i < MAX_FACES; i++) {
+    for(i = 0; i < max_faces; i++) {
         printf("FACE: %d\n", i);
         print_face(faces+i);
         printf("\n\n");
@@ -207,11 +189,11 @@ print_all_faces()
 }
 
 void 
-print_all_points()
+print_all_points( Point * points, uint32_t total_points)
 {
     int i;
 
-    for(i = 0; i < MAX_POINTS; i++) {
+    for(i = 0; i < total_points; i++) {
         printf("Point: %d\n", i);
         print_point(points+i);
         printf("\n\n");
@@ -236,7 +218,7 @@ _get_norm(double x, double y, double z)
 }
 
 static int
-_get_sign_for_norm(double * new_normal, double * normal)
+_get_sign_for_norm(double * new_normal, float * normal)
 {
     double sum = 0;
     int i;
@@ -384,4 +366,16 @@ print_point(Point * point)
     }
     printf("\n");
     printf("\n");
+}
+
+void 
+free_faces(Face * faces)
+{
+    free(faces);
+}
+
+void 
+free_points(Point * points)
+{
+    free(points);
 }
