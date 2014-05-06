@@ -6,21 +6,21 @@
 #include<stdint.h> 
 #include<math.h>
 
-/* error codes */
-typedef enum _error_codes {
-    E_NONE = 0,
-    E_NORMAL = -1,    
-    E_VERTEX = -2,
-    E_FACE = -3,
-    E_HEADER = -4,
-    E_NUM_FACES = -5,
-    E_ATTRIBUTE = -6
-} error_t;
-
 /* MAX_FACES should be determined by the # of triangles
    in the STL */
 #define POINTS_PER_FACE 3
 #define HEADER_LENGTH 80
+
+/* error codes */
+typedef enum stl_error_codes {
+   STL_E_NONE = 0,
+   STL_E_NORMAL = -1,    
+   STL_E_VERTEX = -2,
+   STL_E_FACE = -3,
+   STL_E_HEADER = -4,
+   STL_E_NUM_FACES = -5,
+   STL_E_ATTRIBUTE = -6
+} stl_error_t;
 
 typedef struct point_struct {
     float pos[3];
@@ -40,14 +40,19 @@ typedef struct face_struct {
 
 
 /* parses the stl and returns the filled Face and Point arrays */
-error_t parse_stl(const char * stl_name, Face ** faces, Point ** points,
+stl_error_t parse_stl(const char * stl_name, Face ** faces, Point ** points,
     uint32_t * max_faces, uint32_t * max_points, int32_t * total_points);
 
 /* parses the next facet in the stl file */
-error_t parse_facet(int face_index, FILE * stl_file,  Face * faces, Point * points,
+stl_error_t parse_facet(int face_index, FILE * stl_file,  Face * faces, Point * points,
     uint32_t * total_points);
 
 /* finds the vertex in the point array*/
 Point * find_vertex(float * vertex_pos,  Face * faces, Point * points,
     uint32_t * total_points);
+    
+/* write the face data back into an stl */
+stl_error_t write_stl(const char * stl_name, Face * faces, uint32_t max_faces);
+
+stl_error_t write_facet(int face_index, FILE * stl_file, Face * faces);
 #endif

@@ -1,27 +1,27 @@
 /* my imports */
 #include "parse_stl.h"
 
-error_t
+stl_error_t
 parse_stl(const char * stl_name, Face ** faces, Point ** points,
     uint32_t * max_faces, uint32_t * max_points, int32_t * total_points)
 {
     FILE * stl_file = NULL;
     char buffer[HEADER_LENGTH];
     int i;
-    error_t e_flag;
+    stl_error_t e_flag;
 
     stl_file = fopen(stl_name, "rb");
     /* Read out header */
     if (fread(buffer, sizeof(char), HEADER_LENGTH, stl_file)
         < HEADER_LENGTH) {
         printf("ERROR READING STL HEADER\n");
-        return E_HEADER;
+        return STL_E_HEADER;
     }
     /* Read out number of facets */
     if (fread(max_faces, sizeof(uint32_t), 1,
          stl_file) < 1) {
         printf("ERROR READING NUMBER OF FACETS\n");
-        return E_NUM_FACES;
+        return STL_E_NUM_FACES;
     }
     *max_points = 3*(*max_faces);
     *faces = calloc(*max_faces, sizeof(Face));
@@ -34,7 +34,9 @@ parse_stl(const char * stl_name, Face ** faces, Point ** points,
         }
     }
     
-    return E_NONE;
+    fclose(stl_file);
+    
+    return STL_E_NONE;
 }
 
 int
@@ -48,13 +50,12 @@ parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
 
     /*normal vector */
     for(i = 0; i < 3; i++) {
-        /* TODO: try a mem copy to verify that this works */
         if ((buff = fread(&(faces[face_index].normal[i]), sizeof(char), 4,
             stl_file)) < 4) {
             printf("%d\n", buff);
             printf("ERROR READING NORMAL OF FACET %d COMPONET %d\n",
                 face_index, i);
-            return E_NORMAL;
+            return STL_E_NORMAL;
         }
     }
     #if 0
@@ -64,13 +65,14 @@ parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
         faces[face_index].normal[2]);
     #endif
     
+    /* read each componet of each point in the face*/
     for(i = 0; i < 3; i++) {
         for(j = 0; j < 3; j++) {
             if (fread(vertex_pos+j, sizeof(uint32_t), 1,
                         stl_file) < 1) {
                 printf("ERROR READING VERTEX %d COMPONET %d OF FACET %d\n",
                     i, j, face_index);
-                return E_VERTEX;
+                return STL_E_VERTEX;
             }
         }
         /* place reference to vertex in face */
@@ -89,10 +91,10 @@ parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
                 stl_file) < 1) {
         printf("ERROR READING ATTRIBUTE DATA of OF FACET: %d\n",
             face_index);
-        return E_ATTRIBUTE;
+        return STL_E_ATTRIBUTE;
     }
     
-    return E_NONE;
+    return STL_E_NONE;
 }
 
 
@@ -110,4 +112,84 @@ find_vertex(float * vert_pos, Face * faces, Point * points, uint32_t * total_poi
     memcpy(points[*total_points].pos, vert_pos, 3*sizeof(float));
     /* return a refernce to the point, not the actual point */
     return &points[(*total_points)++]; 
+}
+
+stl_error_t
+write_stl(const char * stl_name, Face * faces, uint32_t max_faces)
+{
+    FILE * stl_file = NULL;
+    char buffer[HEADER_LENGTH];
+    int i;
+    stl_error_t e_flag;
+    
+    for(i = 0; i < HEADER_LENGTH; i++) {
+        buffer[i] = 0;
+    }
+    
+    stl_file = fopen(stl_name, "wb");
+    /* Write header */
+    if (fwrite(buffer, sizeof(char), HEADER_LENGTH, stl_file)
+        < HEADER_LENGTH) {
+        printf("ERROR WRITING STL HEADER\n");
+        return STL_E_HEADER;
+    }
+    /* Write out number of facets */
+    if (fwrite(&max_faces, sizeof(uint32_t), 1, stl_file) < 1) {
+        printf("ERROR WRITING NUMBER OF FACETS\n");
+        return STL_E_NUM_FACES;
+    }
+
+    /* Write all the facets */
+    for(i = 0; i < max_faces; i++) {
+        if (e_flag = write_facet(i, stl_file, faces) < 0) {
+            return e_flag;
+        }
+    }
+    
+    fclose(stl_file);
+
+    return STL_E_NONE;
+}
+
+stl_error_t 
+write_facet(int face_index, FILE * stl_file, Face * faces)
+{
+    uint16_t attribute_data = 0;
+    int i, j;
+    size_t buff;
+
+    /*normal vector */
+    for(i = 0; i < 3; i++) {
+        if ((buff = fwrite(&(faces[face_index].normal[i]), sizeof(char), 4,
+            stl_file)) < 4) {
+            printf("%d\n", buff);
+            printf("ERROR READING NORMAL OF FACET %d COMPONET %d\n",
+                face_index, i);
+            return STL_E_NORMAL;
+        }
+    }
+    
+    /* write each componet of each point in the face*/
+    for(i = 0; i < 3; i++) {
+        for(j = 0; j < 3; j++) {
+            if (fwrite(&(faces[face_index].points[i]->pos[j]), sizeof(uint32_t), 1,
+                        stl_file) < 1) {
+                printf("ERROR READING VERTEX %d COMPONET %d OF FACET %d\n",
+                    i, j, face_index);
+                return STL_E_VERTEX;
+            }
+        }
+
+    }
+
+    /* attribute data (uint16) */
+    if (fwrite(&attribute_data, sizeof(attribute_data), 1,
+                stl_file) < 1) {
+        printf("ERROR READING ATTRIBUTE DATA of OF FACET: %d\n",
+            face_index);
+        return STL_E_ATTRIBUTE;
+    }
+    
+
+    return STL_E_NONE;
 }

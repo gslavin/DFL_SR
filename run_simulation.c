@@ -6,39 +6,38 @@ int main() {
     uint32_t max_faces = 0;
     uint32_t max_points = 0;
     uint32_t total_points = 0;
-    int i,j,k;
+    int i,j,k, ret;
     
-    parse_stl("sphere2.stl", &faces, &points, &max_faces,
+    /* parse the stl file */
+    ret = parse_stl(INPUT_STL, &faces, &points, &max_faces,
         &max_points, &total_points);
-    
+    if(ret < 0) {
+        printf("STL Error %d", ret);
+    }
     printf("There are %d faces\n", max_faces);
     printf("There are %d points\n", total_points);
+    
     //set spring constants
     for(i = 0; i < max_faces; i++) {
         for(j = 0; j < POINTS_PER_FACE; j++) {
             faces[i].spring_constants[j] = SPRING_CONSTANT;
         }
     }
-    ////////////////////////////////////////Dumby data fill
-
-    //clear csv log files
-    clear_file(NORMAL_LOG_NAME);
-    clear_file(FORCE_LOG_NAME);
-    clear_file(POINT_LOG_NAME);
-
-    /* calculate new normal of faces */
-    for(i = 0; i < max_faces; i++) {
-        update_normal(&faces[i]);
+    
+    /* clear all log files */
+    clear_logs();
+    
+    /* run sim for TIME_STEPS time steps */
+    printf("Sim running for %d iteration\n", TIME_STEPS);
+    run_simulation(faces, max_faces, points, total_points);
+    
+    /*write to a new stl */
+    #if 0
+    ret = write_stl(OUTPUT_STL, faces, max_faces);
+    if(ret < 0) {
+        printf("STL Error %d", ret);
     }
-    //print_all_faces(faces, max_faces);
-    for(i = 0; i < TIME_STEPS; i++) {
-        reset_net_force(points, max_points);
-        change_state(faces, max_faces, points, max_points);
-        /* print_all_points(); */
-        log_normals(faces, max_faces, points, max_points);
-        log_forces(faces, max_faces, points, max_points);
-        log_points(faces, max_faces, points, max_points);
-    }
+    #endif
     
     /* free all malloc objects */
     free_faces(faces);
@@ -47,31 +46,67 @@ int main() {
     return 0;
 }
 
-void
+sim_error_t
+clear_logs()
+{
+    clear_file(NORMAL_LOG_NAME);
+    clear_file(FORCE_LOG_NAME);
+    clear_file(POINT_LOG_NAME);
+
+    return SIM_E_NONE;
+}
+
+sim_error_t
+run_simulation(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points)
+{
+    int i;
+    /* calculate new normal of faces */
+    for(i = 0; i < max_faces; i++) {
+        update_normal(&faces[i]);
+    }
+    //print_all_faces(faces, max_faces);
+    for(i = 0; i < TIME_STEPS; i++) {
+        reset_net_force(points, total_points);
+        change_state(faces, max_faces, points, total_points);
+        /* print_all_points(); */
+        log_normals(faces, max_faces, points, total_points);
+        log_forces(faces, max_faces, points, total_points);
+        log_points(faces, max_faces, points, total_points);
+    }
+    
+    return SIM_E_NONE;
+}
+
+sim_error_t
 clear_file(const char * name)
 {
     FILE * fp = NULL;
+    int ret_err = SIM_E_NONE;
 
     fp = fopen(name, "w");
     if (fp == NULL) {
         printf("Error Opening %s\n", name);
-        return;
+        ret_err = SIM_E_LOG_FILE;
     }
     fclose(fp);
+    
+    return ret_err;
 }
 
 /* logs point pos each iteration to the line of a csv */
-void
+sim_error_t
 log_normals(Face * faces, uint32_t max_faces, Point * points,
     uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
+    int ret_err = SIM_E_NONE;
 
     fp = fopen(NORMAL_LOG_NAME, "a");
     if (fp == NULL) {
         printf("Error Opening normal log file\n");
-        return;
+        ret_err = SIM_E_LOG_FILE;
     }
     /* each line is a point */
     for(i = 0; i < max_faces; i++) {
@@ -83,20 +118,23 @@ log_normals(Face * faces, uint32_t max_faces, Point * points,
     /* blank lines delimit iterations */
     fprintf(fp, "\n");
     fclose(fp);
+    
+    return ret_err;
 }
 
 /* logs point pos each iteration to the line of a csv */
-void
+sim_error_t
 log_forces(Face * faces, uint32_t max_faces, Point * points,
     uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
+    int ret_err = SIM_E_NONE;
 
     fp = fopen(FORCE_LOG_NAME, "a");
     if (fp == NULL) {
         printf("Error Opening force log file\n");
-        return;
+        ret_err = SIM_E_LOG_FILE;
     }
     /* each line is a point */
     for(i = 0; i < total_points; i++) {
@@ -108,20 +146,23 @@ log_forces(Face * faces, uint32_t max_faces, Point * points,
     /* blank lines delimit iterations */
     fprintf(fp, "\n");
     fclose(fp);
+    
+    return ret_err;
 }
 
 /* logs point pos each iteration to the line of a csv */
-void
+sim_error_t
 log_points(Face * faces, uint32_t max_faces, Point * points,
     uint32_t total_points)
 {
     FILE * fp = NULL;
     int i, j;
+    int ret_err = SIM_E_NONE;
 
     fp = fopen(POINT_LOG_NAME, "a");
     if (fp == NULL) {
         printf("Error Opening point log file\n");
-        return;
+        ret_err = SIM_E_LOG_FILE;
     }
     /* each line is a point */
     for(i = 0; i < total_points; i++) {
@@ -133,6 +174,8 @@ log_points(Face * faces, uint32_t max_faces, Point * points,
     /* blank lines delimit iterations */
     fprintf(fp, "\n");
     fclose(fp);
+    
+    return ret_err;
 }
 
 

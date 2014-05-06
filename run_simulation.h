@@ -3,6 +3,10 @@
 
 #include "parse_stl.h"
 
+/*STL NAMES */
+#define INPUT_STL "sphere2.stl"
+#define OUTPUT_STL "sphere_new_thing.stl"
+
 /*Number of Faces */
 #define AREA 1
 #define SPRING_CONSTANT 10
@@ -13,6 +17,23 @@
 #define FORCE_LOG_NAME "tetra_model_forces.csv"
 #define POINT_LOG_NAME "tetra_model_points.csv"
 
+/* error codes */
+typedef enum sim_error_codes {
+    SIM_E_NONE = 0,
+    SIM_E_LOG_FILE = -1
+} sim_error_t;
+
+sim_error_t clear_logs();
+sim_error_t clear_file(const char *);
+sim_error_t log_normals(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points);
+sim_error_t log_forces(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points);
+sim_error_t log_points(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points);
+
+sim_error_t run_simulation(Face * faces, uint32_t max_faces, Point * points,
+    uint32_t total_points);
 void change_state(Face * faces, uint32_t max_faces, Point * points,
     uint32_t total_points);
 void reset_net_force( Point * points, uint32_t total_points);
@@ -22,13 +43,6 @@ void update_pos(Point * point);
 void update_normal(Face * face);
 double get_norm(double x, double y, double z);
 
-void clear_file(const char *);
-void log_normals(Face * faces, uint32_t max_faces, Point * points,
-    uint32_t total_points);
-void log_forces(Face * faces, uint32_t max_faces, Point * points,
-    uint32_t total_points);
-void log_points(Face * faces, uint32_t max_faces, Point * points,
-    uint32_t total_points);
 void print_all_faces(Face * faces, uint32_t max_faces);
 void print_face(Face * face);
 void print_all_points(Point * points, uint32_t total_points);
