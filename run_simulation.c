@@ -4,9 +4,13 @@ int main() {
     Face * faces = NULL;
     Point * points = NULL;
     uint32_t max_faces = 0;
+    /* max points = 3*max_faces */
     uint32_t max_points = 0;
+    /* total points = total number of independent points */
     uint32_t total_points = 0;
     int i,j,k, ret;
+    float center_coordinates[3] = {0,0,0};
+    int tally_lower = 0, tally_higher = 0;
     
     /* parse the stl file */
     ret = parse_stl(INPUT_STL, &faces, &points, &max_faces,
@@ -16,13 +20,27 @@ int main() {
     }
     printf("There are %d faces\n", max_faces);
     printf("There are %d points\n", total_points);
-    
-    //set spring constants
+
+    get_center_coordinates(points, total_points, center_coordinates);
+    printf("CENTER COORDINATES: %f %f %f\n", center_coordinates[0], center_coordinates[1], center_coordinates[2]);
+    /* Define center point and split stl in half
+    One half has a high Spring Constant, the another has a low Spring Constant
+    */
+    //set spring constants (Points on the lowr half of the stl will have larger spring constant)
     for(i = 0; i < max_faces; i++) {
         for(j = 0; j < POINTS_PER_FACE; j++) {
-            faces[i].spring_constants[j] = SPRING_CONSTANT;
+            if (faces[i].points[j]->pos[1] > center_coordinates[1]) {
+                faces[i].spring_constants[j] = SPRING_CONSTANT;
+                tally_higher++;
+            }
+            else {
+                faces[i].spring_constants[j] = 20*SPRING_CONSTANT;
+                tally_lower++;
+            }
         }
     }
+    printf("TALLY_H: %d\n", tally_higher);
+    printf("TALLY_L: %d\n", tally_lower);
     
     /* clear all log files */
     clear_logs();
@@ -44,6 +62,20 @@ int main() {
     free_points(points);
     
     return 0;
+}
+
+void get_center_coordinates(Point * points, uint32_t total_points, float * center_coordinates)
+{
+    int i, j;
+    
+    for(i = 0; i < total_points; i++) {
+        for(j = 0; j < 3; j++) {
+            center_coordinates[j] += points[i].pos[j];
+        }
+    }
+    for(j = 0; j < 3; j++) {
+        center_coordinates[j] /= total_points;
+    }
 }
 
 sim_error_t
@@ -352,16 +384,36 @@ calculate_forces(Face * face, int point_index)
     add_force(face->points[point_index], spring_force);
 }
 
+int
+point_in_bounds(Point * point)
+{
+    int i, in_bounds = 1;
+    
+    for(i = 0; i < 3; i++) {
+            in_bounds = (in_bounds && (abs(point->pos[i]) < BOUND_LIMIT));
+    }
+    return in_bounds;
+}
+
 void 
 update_pos(Point * point)
 {
     int i;
     double delta_pos[3];
-
+    
     for(i = 0; i < 3; i++) {
         delta_pos[i] = point->net_force[i]*FORCE_FACTOR;
         point->pos[i] += delta_pos[i];
         point->delta_pos[i] += delta_pos[i];
+    }
+    
+    /* undo position update if point out of bounds */
+    if(!point_in_bounds(point)) {
+        for(i = 0; i < 3; i++) {
+            delta_pos[i] = point->net_force[i]*FORCE_FACTOR;
+            point->pos[i] -= delta_pos[i];
+            point->delta_pos[i] -= delta_pos[i];
+        }
     }
 }
 
@@ -414,11 +466,13 @@ print_point(Point * point)
 void 
 free_faces(Face * faces)
 {
+    /* TODO: check if malloc is successful */
     free(faces);
 }
 
 void 
 free_points(Point * points)
 {
+    /* TODO: check if malloc is successful */
     free(points);
 }

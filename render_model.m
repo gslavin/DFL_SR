@@ -5,7 +5,8 @@ function [] = render_model(file_name_points, file_name_forces)
     points = zeros(POINTS, 3, ITERATIONS);
     forces = zeros(POINTS, 3, ITERATIONS);
     force_mag = zeros(POINTS,ITERATIONS);
-    limit = 20;
+    average_force_mag = zeros(1,ITERATIONS);
+    limit = 7;
     
     % load the position data
     points = load_data(file_name_points, points);
@@ -14,17 +15,17 @@ function [] = render_model(file_name_points, file_name_forces)
     
     %force_vs_time()
     for i =1:ITERATIONS
-        plot_points();
+        plot_points(i);
         %plot_forces();
         %plot_normals();
         pause(STEP_TIME);
     end
     
     % plots the points as a triangulated mesh
-    function [] = plot_points()
-        X = points(:,1,i);
-        Y = points(:,2,i);
-        Z = points(:,3,i);
+    function [] = plot_points(time_step)
+        X = points(:,1,time_step);
+        Y = points(:,2,time_step);
+        Z = points(:,3,time_step);
         % the set up points must be triangulated to make
         % a mesh
         DT = delaunay(X,Y,Z);
@@ -39,14 +40,20 @@ function [] = render_model(file_name_points, file_name_forces)
         for i = 1:ITERATIONS
             for j = 1:POINTS
                 force_mag(j,i) = norm(forces(j,:,i));
+                average_force_mag(i) = average_force_mag(i) +...
+                    norm(forces(j,:,i));
             end
+            average_force_mag(i) = average_force_mag(i)/POINTS;
         end
         x = 1:ITERATIONS;
-        plot(x, force_mag(1,:),...
-             x, force_mag(2,:),...
-             x, force_mag(3,:),...
-             x, force_mag(4,:))
-        ylim([0 max(max(force_mag(:,:)))])
+%         %plot four smaple points
+%         plot(x, force_mag(1,:),...
+%              x, force_mag(27,:),...
+%              x, force_mag(32,:),...
+%              x, force_mag(54,:))
+%        ylim([0 max(max(force_mag(:,:)))])
+        plot(x, average_force_mag(1,:))
+        ylim([0 max(max(average_force_mag(:,:)))])
     end
 
     % plots the forces as vectors at the points

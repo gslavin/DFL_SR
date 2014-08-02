@@ -8,9 +8,8 @@
 
 /* MAX_FACES should be determined by the # of triangles
    in the STL */
-#define POINTS_PER_FACE 3
 #define HEADER_LENGTH 80
-
+#define POINTS_PER_FACE 3
 /* error codes */
 typedef enum stl_error_codes {
    STL_E_NONE = 0,
