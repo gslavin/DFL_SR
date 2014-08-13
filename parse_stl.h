@@ -1,10 +1,19 @@
 #ifndef PARSE_STL
 #define PARSE_STL
+
 /* standard imports */
-#include<windows.h>
-#include<stdio.h>
-#include<stdint.h> 
-#include<math.h>
+#if defined(_WIN32) || defined(WIN32)
+	#include <windows.h>
+
+#elif __unix__
+	#include <stdlib.h>
+	#include <string.h>
+
+#endif
+
+#include <stdio.h>
+#include <stdint.h> 
+#include <math.h>
 
 /* MAX_FACES should be determined by the # of triangles
    in the STL */
@@ -40,7 +49,7 @@ typedef struct face_struct {
 
 /* parses the stl and returns the filled Face and Point arrays */
 stl_error_t parse_stl(const char * stl_name, Face ** faces, Point ** points,
-    uint32_t * max_faces, uint32_t * max_points, int32_t * total_points);
+    uint32_t * max_faces, uint32_t * max_points, uint32_t * total_points);
 
 /* parses the next facet in the stl file */
 stl_error_t parse_facet(int face_index, FILE * stl_file,  Face * faces, Point * points,

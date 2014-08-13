@@ -3,7 +3,7 @@
 
 stl_error_t
 parse_stl(const char * stl_name, Face ** faces, Point ** points,
-    uint32_t * max_faces, uint32_t * max_points, int32_t * total_points)
+    uint32_t * max_faces, uint32_t * max_points, uint32_t * total_points)
 {
     FILE * stl_file = NULL;
     char buffer[HEADER_LENGTH];
@@ -29,7 +29,7 @@ parse_stl(const char * stl_name, Face ** faces, Point ** points,
 
     /* Parse all the facets */
     for(i = 0; i < *max_faces; i++) {
-        if (e_flag = parse_facet(i, stl_file, *faces, *points, total_points) < 0) {
+        if ((e_flag = parse_facet(i, stl_file, *faces, *points, total_points)) < 0) {
             return e_flag;
         }
     }
@@ -52,7 +52,7 @@ parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
     for(i = 0; i < 3; i++) {
         if ((buff = fread(&(faces[face_index].normal[i]), sizeof(char), 4,
             stl_file)) < 4) {
-            printf("%d\n", buff);
+            printf("%lu\n", buff);
             printf("ERROR READING NORMAL OF FACET %d COMPONET %d\n",
                 face_index, i);
             return STL_E_NORMAL;
@@ -141,7 +141,7 @@ write_stl(const char * stl_name, Face * faces, uint32_t max_faces)
 
     /* Write all the facets */
     for(i = 0; i < max_faces; i++) {
-        if (e_flag = write_facet(i, stl_file, faces) < 0) {
+        if ((e_flag = write_facet(i, stl_file, faces)) < 0) {
             return e_flag;
         }
     }
@@ -162,7 +162,7 @@ write_facet(int face_index, FILE * stl_file, Face * faces)
     for(i = 0; i < 3; i++) {
         if ((buff = fwrite(&(faces[face_index].normal[i]), sizeof(char), 4,
             stl_file)) < 4) {
-            printf("%d\n", buff);
+            printf("%lu\n", buff);
             printf("ERROR READING NORMAL OF FACET %d COMPONET %d\n",
                 face_index, i);
             return STL_E_NORMAL;

@@ -8,7 +8,7 @@ int main() {
     uint32_t max_points = 0;
     /* total points = total number of independent points */
     uint32_t total_points = 0;
-    int i,j,k, ret;
+    int i,j, ret;
     float center_coordinates[3] = {0,0,0};
     int tally_lower = 0, tally_higher = 0;
     
@@ -230,7 +230,7 @@ void
 change_state(Face * faces, uint32_t max_faces, Point * points,
     uint32_t total_points)
 {
-    int i, j, k;
+    int i, j;
     
     /* calculate new normal of faces */
     for(i = 0; i < max_faces; i++) {
