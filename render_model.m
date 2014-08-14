@@ -10,8 +10,17 @@ function [] = render_model(file_name_points, file_name_forces)
     
     % load the position data
     points = load_data(file_name_points, points);
+	% return if values are all still zero
+	if ~all(all(points))
+		return;
+	end
+
     % load the force data
     forces = load_data(file_name_forces, forces);
+	% return if values are all still zero
+	if ~all(all(forces))
+		return;
+	end
     
     %force_vs_time()
     for i =1:ITERATIONS
@@ -97,10 +106,23 @@ function [] = render_model(file_name_points, file_name_forces)
     end
 
     function [array] = load_data(file_name, array)
-        fid = fopen(file_name);
+		try
+            fid = fopen(file_name);
+		catch ME
+			fprintf('Error opening file %s\n', file_name);
+			return
+		end
+
         i = 1;
         j = 1;
-        line = fgetl(fid);
+
+		try
+        	line = fgetl(fid);
+		catch ME
+			fprintf('Error reading file %s\n', file_name);
+			return
+		end
+
         while ischar(line)
             if strcmp(line,'')
                 j = j + 1;

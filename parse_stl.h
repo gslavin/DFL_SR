@@ -2,8 +2,6 @@
 #define PARSE_STL
 
 /* standard imports */
-#include <stdlib.h> 
-#include <string.h>
 #include <stdio.h>
 #include <stdint.h> 
 #include <math.h>
@@ -12,8 +10,10 @@
 #if defined(_WIN32) || defined(WIN32)
 	#include <windows.h>
 
-/* linux only imports */
-//#elif __unix__  
+/* *nix only imports */
+#elif __unix__  
+	#include <stdlib.h> 
+    #include <string.h>
 #endif
 
 

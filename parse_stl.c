@@ -12,7 +12,7 @@ parse_stl(const char * stl_name, Face ** faces, Point ** points,
 
     stl_file = fopen(stl_name, "rb");
     if (stl_file == NULL) {
-        printf("Error Opening %s\n", stl_name);
+        printf("Error Opening %s for reading\n", stl_name);
         return STL_E_FILE;
     }
     /* Read out header */
@@ -131,6 +131,10 @@ write_stl(const char * stl_name, Face * faces, uint32_t max_faces)
     }
     
     stl_file = fopen(stl_name, "wb");
+    if (stl_file == NULL) {
+        printf("Error Opening %s for writing\n", stl_name);
+        return STL_E_FILE;
+    }
     /* Write header */
     if (fwrite(buffer, sizeof(char), HEADER_LENGTH, stl_file)
         < HEADER_LENGTH) {
