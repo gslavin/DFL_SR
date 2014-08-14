@@ -11,6 +11,10 @@ parse_stl(const char * stl_name, Face ** faces, Point ** points,
     stl_error_t e_flag;
 
     stl_file = fopen(stl_name, "rb");
+    if (stl_file == NULL) {
+        printf("Error Opening %s\n", stl_name);
+        return STL_E_FILE;
+    }
     /* Read out header */
     if (fread(buffer, sizeof(char), HEADER_LENGTH, stl_file)
         < HEADER_LENGTH) {
@@ -39,7 +43,7 @@ parse_stl(const char * stl_name, Face ** faces, Point ** points,
     return STL_E_NONE;
 }
 
-int
+stl_error_t
 parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
     uint32_t * total_points)
 {
@@ -53,7 +57,7 @@ parse_facet(int face_index, FILE * stl_file, Face * faces, Point * points,
         if ((buff = fread(&(faces[face_index].normal[i]), sizeof(char), 4,
             stl_file)) < 4) {
             printf("%lu\n", buff);
-            printf("ERROR READING NORMAL OF FACET %d COMPONET %d\n",
+            printf("ERROR READING NORMAL OF FACET %d COMPONENT %d\n",
                 face_index, i);
             return STL_E_NORMAL;
         }

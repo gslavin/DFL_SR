@@ -1,6 +1,21 @@
 #include "run_simulation.h"
 
-int main() {
+void show_usage(void);
+
+
+int main(int argc, char *argv[]) {
+
+	/* parse args */
+	int opt_write_stl = 0;
+
+	if (argc == 3){
+		opt_write_stl = 1;
+	}
+	else if (argc != 2){
+		show_usage();
+		return 1;
+	}
+
     Face * faces = NULL;
     Point * points = NULL;
     uint32_t max_faces = 0;
@@ -13,10 +28,11 @@ int main() {
     int tally_lower = 0, tally_higher = 0;
     
     /* parse the stl file */
-    ret = parse_stl(INPUT_STL, &faces, &points, &max_faces,
+    ret = parse_stl(argv[1], &faces, &points, &max_faces,
         &max_points, &total_points);
     if(ret < 0) {
-        printf("STL Error %d", ret);
+        printf("STL Error %d\n", ret);
+		return 1;
     }
     printf("There are %d faces\n", max_faces);
     printf("There are %d points\n", total_points);
@@ -49,14 +65,14 @@ int main() {
     printf("Sim running for %d iteration\n", TIME_STEPS);
     run_simulation(faces, max_faces, points, total_points);
     
-    /*write to a new stl */
-    #if 0
-    ret = write_stl(OUTPUT_STL, faces, max_faces);
-    if(ret < 0) {
-        printf("STL Error %d", ret);
-    }
-    #endif
-    
+    /* write to a new stl */
+	if (opt_write_stl){
+		printf("Writing final state to stl %s\n", argv[2]);
+		ret = write_stl(argv[2], faces, max_faces);
+		if(ret < 0) {
+			printf("STL Error %d", ret);
+		}
+	}
     /* free all malloc objects */
     free_faces(faces);
     free_points(points);
@@ -475,4 +491,14 @@ free_points(Point * points)
 {
     /* TODO: check if malloc is successful */
     free(points);
+}
+
+void 
+show_usage(void)
+{
+    printf("Usage: ./simulation <input-stl> [output-stl]\n"
+	       "  input-stl                Filename of an binary formatted stl file to be simulated\n"
+	       "  output-stl     OPTIONAL: Filename of the output stl that the simulator will write the\n" 
+		   "                           final of the simulated object \n"
+		   );
 }

@@ -2,18 +2,20 @@
 #define PARSE_STL
 
 /* standard imports */
-#if defined(_WIN32) || defined(WIN32)
-	#include <windows.h>
-
-#elif __unix__
-	#include <stdlib.h>
-	#include <string.h>
-
-#endif
-
+#include <stdlib.h> 
+#include <string.h>
 #include <stdio.h>
 #include <stdint.h> 
 #include <math.h>
+
+/* windows only imports */
+#if defined(_WIN32) || defined(WIN32)
+	#include <windows.h>
+
+/* linux only imports */
+//#elif __unix__  
+#endif
+
 
 /* MAX_FACES should be determined by the # of triangles
    in the STL */
@@ -27,7 +29,8 @@ typedef enum stl_error_codes {
    STL_E_FACE = -3,
    STL_E_HEADER = -4,
    STL_E_NUM_FACES = -5,
-   STL_E_ATTRIBUTE = -6
+   STL_E_ATTRIBUTE = -6,
+   STL_E_FILE = -7,
 } stl_error_t;
 
 typedef struct point_struct {

@@ -4,7 +4,6 @@
 #include "parse_stl.h"
 
 /*STL NAMES */
-#define INPUT_STL "cylinder.stl"
 #define OUTPUT_STL "new_cylinder.stl"
 
 /*Number of Faces */
@@ -12,7 +11,7 @@
 #define AREA 1
 #define SPRING_CONSTANT 1
 #define PRESSURE_VALUE 1
-#define FORCE_FACTOR 0.01
+#define FORCE_FACTOR 0.01 
 #define TIME_STEPS 300
 #define NORMAL_LOG_NAME "tetra_model_normals.csv"
 #define FORCE_LOG_NAME "tetra_model_forces.csv"
